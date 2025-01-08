@@ -2,16 +2,12 @@ import os
 import json
 from threading import Lock
 from datetime import datetime
-from dotenv import load_dotenv
 
 logs = []
 log_count = 1
 log_lock = Lock()
 
-# Load the environment variables
-load_dotenv()
-jsons_folder = os.environ.get('jsons_folder')
-log_file = os.path.join(jsons_folder, 'logs.json')
+log_file = os.path.join('logs.json')
 
 
 def get_timestamp():

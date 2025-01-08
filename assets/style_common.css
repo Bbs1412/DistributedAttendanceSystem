@@ -1,0 +1,145 @@
+
+
+:root {
+    --primary-color: #7C3AED;
+    --success-color: #10B981;
+    --danger-color: #EF4444;
+    --text-primary: #F9FAFB;
+    --text-secondary: #9CA3AF;
+    --bg-primary: #111827;
+    --bg-secondary: #1F2937;
+    --card-bg: #374151;
+    --shadow-color: rgba(0, 0, 0, 0.25);
+    --table-header-bg: #1F2937;
+    /* --table-header-bg: #1F2937; */
+}
+
+[data-theme="light"] {
+    --primary-color: #6D28D9;
+    --success-color: #059669;
+    --danger-color: #DC2626;
+    --text-primary: #111827;
+    --text-secondary: #4B5563;
+    --bg-primary: #F9FAFB;
+    --bg-secondary: #F3F4F6;
+    --card-bg: #FFFFFF;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --table-header-bg: #8e939b;
+}
+
+
+
+/* ===================================================================================== */
+/* Theme switch */
+/* ===================================================================================== */
+
+
+input[type="checkbox"] {
+    display: none;
+}
+
+label {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    border: 2px solid gray;
+    border-radius: 30px;
+    padding: 10px;
+    cursor: pointer;
+    z-index: 1000;
+    background: var(--card-bg);
+    /* background: var(--bg-secondary); */
+}
+
+
+.fa-sun {
+    color: orange;
+    font-size: 25px;
+    text-shadow: 0px 0px 20px orange;
+    transform: translateX(25px);
+    opacity: 0;
+    transition: 0.3s;
+}
+
+.fa-moon {
+    color: white;
+    font-size: 25px;
+    text-shadow: 0px 0px 20px white;
+    transform: translateX(0px);
+    opacity: 1;
+    transition: 0.3s;
+}
+
+#switch-button:checked~label .fa-sun {
+    opacity: 1;
+    transform: translateX(0px);
+}
+
+#switch-button:checked~label .fa-moon {
+    opacity: 0;
+    transform: translateX(-25px);
+}
+
+#switch-button:checked~.container {
+    background-color: #f4f4f9;
+    color: #333;
+}
+
+#switch-button:checked~.container .card {
+    background-color: #ffffff;
+}
+
+.container {
+    min-height: 100vh;
+    padding: 2rem;
+    display: grid;
+    place-items: center;
+}
+
+
+.theme-switch {
+    position: fixed;
+    top: 2rem;
+    right: 2rem;
+    z-index: 100;
+}
+
+.theme-switch button {
+    background: var(--card-bg);
+    border: none;
+    border-radius: 50%;
+    width: 3rem;
+    height: 3rem;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    box-shadow: 0 4px 6px var(--shadow-color);
+    transition: transform 0.3s ease;
+}
+
+.theme-switch button:hover {
+    transform: scale(1.1);
+}
+
+.theme-switch img {
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+
+/* ===================================================================================== */
+/* Footer */
+/* ===================================================================================== */
+
+
+footer {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 1rem;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg-primary);
+    border-top: 1px solid var(--bg-secondary);
+}

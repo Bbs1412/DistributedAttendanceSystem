@@ -1,0 +1,259 @@
+/* ===================================================================================== */
+/* Main body formatting */
+/* ===================================================================================== */
+
+@import url('style_common.css');
+
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    /* font-family: 'Arial', sans-serif; */
+    font-family: 'Inter', sans-serif;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    transition: all 0.3s ease;
+    min-height: 90vh;
+    display: flex;
+    align-items: center;
+
+}
+
+
+/* ===================================================================================== */
+/* Video box and placeholders */
+/* ===================================================================================== */
+
+.card {
+    background: var(--card-bg);
+    border-radius: 1.5rem;
+    padding: 2rem;
+    width: 100%;
+    max-width: 800px;
+    box-shadow: 0 8px 30px var(--shadow-color);
+}
+
+.card-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+/* ===================================================================================== */
+/* class Timings data */
+/* ===================================================================================== */
+
+.timing-card {
+    margin: 20px 0 30px 0;
+    background: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow-color);
+    overflow: hidden;
+}
+
+.timing-header {
+    /* background: var(--bg-secondary); */
+    background: var(--table-header-bg);
+    color: var(--text-primary);
+    padding: 12px 20px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.timing-content {
+    padding: 15px 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.timing-section {
+    padding: 10px;
+}
+
+.timing-section h3 {
+    color: var(--text-primary);
+    margin-bottom: 10px;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.time-display,
+.duration-display {
+    background: var(--bg-secondary);
+    padding: 10px;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.time-display .time {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.time-display .date {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.duration-display {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.duration-display span {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .timing-content {
+        grid-template-columns: 1fr;
+    }
+
+    .duration-display {
+        flex-direction: column;
+        align-items: center;
+    }
+}
+
+
+/* ===================================================================================== */
+/* Result detailed table */
+/* ===================================================================================== */
+
+
+.results-container {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.results-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.results-header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, var(--primary-color), #9F7AEA);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    box-shadow: 0 8px 30px var(--shadow-color);
+    background: var(--card-bg);
+    border-radius: 1rem;
+    overflow: hidden;
+}
+
+th,
+td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+th {
+    background: var(--bg-secondary);
+    text-align: center;
+    font-weight: 600;
+}
+
+tr:hover {
+    background: var(--bg-secondary);
+}
+
+.download-link {
+    text-align: center;
+    margin: 2rem 0;
+}
+
+.download-link a,
+.back-link a {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.75rem;
+    background: var(--primary-color);
+    color: white;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.download-link a:hover,
+.back-link a:hover {
+    transform: scale(1.05);
+}
+
+.back-link {
+    text-align: center;
+    margin-top: 2rem;
+}
+
+
+
+/* Update table header colors for both themes */
+th {
+    /* background: var(--bg-secondary); */
+    background: var(--table-header-bg);
+    color: var(--text-primary);
+    font-weight: 600;
+    transition: all 0.3s ease;
+
+}
+
+.results-container {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding-bottom: 5rem;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    box-shadow: 0 8px 30px var(--shadow-color);
+    background: var(--card-bg);
+    border-radius: 1rem;
+    overflow: hidden;
+    margin-bottom: 3rem;
+}
+
+.download-link a:hover,
+.back-link a:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px var(--shadow-color);
+}
+
+#align_center {
+    text-align: center;
+}
+
+#align_right {
+    text-align: right;
+}
+
+#align_left {
+    text-align: left;
+}
+

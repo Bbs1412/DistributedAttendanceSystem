@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+   <title>Smart Attendance System</title>
+
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+   <link rel="icon" href="/assets/infinity.ico" type="image/x-icon">
+   <link rel="stylesheet" href="/assets/style.css">
+</head>
+
+<body>
+   {% include 'theme_switch.html' %}
+
+   <div class="container" id="main">
+      <div class="card">
+         <div class="card-header">
+            <h1>Smart Attendance System</h1>
+            <p class="subtitle">Video Based Attendance Tracking</p>
+         </div>
+
+         <form id="uploadForm" action="/upload_video" method="post" enctype="multipart/form-data">
+            <div class="video-wrapper">
+               <div class="video-container">
+                  <video id="video" autoplay></video>
+                  <div class="placeholder" id="placeholder">
+                     <img id="placeholderImage" src="/assets/camera2.png" alt="Camera">
+                     <!-- <i class="fas fa-video"></i> -->
+                     <p>Camera Feed</p>
+                  </div>
+
+                  <!-- Recording indicator -->
+                  <div class="recording-indicator" id="recordingIndicator">
+                     <i class="fas fa-circle"></i>
+                     <span>Recording</span>
+                  </div>
+
+                  <!-- Preview indicator -->
+                  <div class="preview-indicator" id="previewIndicator">
+                     <i class="fas fa-eye"></i>
+                     <span>Previewing</span>
+                  </div>
+
+               </div>
+
+               <div class="controls">
+                  <button type="button" id="startCamera" class="btn">
+                     <i class="fas fa-camera"></i>
+                     <span>Start Camera</span>
+                  </button>
+
+                  <button type="button" id="startRecord" class="btn" disabled>
+                     <i class="fas fa-record-vinyl"></i>
+                     <span>Record</span>
+                  </button>
+
+                  <button type="button" id="stopRecord" class="btn" disabled>
+                     <i class="fas fa-stop"></i>
+                     <span>Stop</span>
+                  </button>
+
+                  <!-- No of frames selector -->
+                  <div class="dropdown">
+                     <button type="button" id="frameSelect" class="btn">
+                        <!-- 
+                                <i class="fas fa-layer-group"></i>
+                                <i class="fas fa-film"></i>
+                                -->
+                        <i class="fas fa-images"></i>
+                        <span id="frameDisplay">Frames: 50</span>
+                     </button>
+                     <div class="dropdown-content" id="frameDropdown">
+                        <p>Number of Frames</p>
+                        <ul>
+                           <!-- <li data-value="5">5</li> -->
+                           <!-- <li data-value="10">10</li> -->
+                           <li data-value="20">20</li>
+                           <li data-value="50">50</li>
+                           <li data-value="100">100</li>
+                           <li data-value="200">200</li>
+                        </ul>
+                     </div>
+                  </div>
+
+                  <!-- Parallel (Load Balancing) Mode Selector -->
+                  <div class="dropdown">
+                     <button type="button" id="modeSelect" class="btn">
+                        <!-- <i class="fas fa-cogs"></i> -->
+                        <i class="fas fa-network-wired"></i>
+                        <span id="modeDisplay">Mode: Dynamic</span>
+                     </button>
+                     <div class="dropdown-content" id="modeDropdown">
+                        <p>Select Mode</p>
+                        <ul>
+                           <li data-value="Dynamic">Dynamic</li>
+                           <li data-value="Static">Static</li>
+                        </ul>
+                     </div>
+                  </div>
+
+               </div>
+            </div>
+
+
+            <input type="hidden" name="video_data" id="videoData">
+            <input type="hidden" name="timestamps" id="timestamps">
+            <input type="hidden" name="frame_count" id="frameCount">
+            <input type="hidden" name="processing_mode" id="processingMode">
+
+            <div class="upload-section">
+               <div id="extracting_wait" class="status-message">
+                  <div class="spinner"></div>
+                  <span>Extracting frames...</span>
+               </div>
+               <button type="submit" class="btn submit-btn">
+                  <i class="fas fa-upload"></i>
+                  <span>Upload Video</span>
+               </button>
+            </div>
+         </form>
+      </div>
+   </div>
+
+   <div id="errBox" class="modal">
+      <div class="modal-content" id="proc_stat">
+         <h2>Processing video...</h2>
+         <img src="/assets/loading_4.gif" alt="Processing">
+
+         <p id="upload_status"></p>
+         <div id="attendance_div">
+            <div class="loader"></div>
+            <p id="calc_attend">Checking Attendance...</p>
+         </div>
+      </div>
+   </div>
+
+
+
+
+   {% include 'footer.html' %}
+
+   <script src="/assets/script.js"></script>
+   <script src="/assets/script_theme.js"></script>
+</body>
+
+</html>

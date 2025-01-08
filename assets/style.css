@@ -1,0 +1,366 @@
+/* ===================================================================================== */
+/* Main body formatting */
+/* ===================================================================================== */
+
+@import url('style_common.css');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Arial', sans-serif;
+    /* font-family: 'Inter', sans-serif; */
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    /* transition: 0.2s; */
+    transition: all 0.3s ease;
+
+}
+
+
+
+/* ===================================================================================== */
+/* Video box and placeholders */
+/* ===================================================================================== */
+
+.card {
+    background: var(--card-bg);
+    border-radius: 1.5rem;
+    padding: 2rem;
+    width: 100%;
+    max-width: 800px;
+    box-shadow: 0 8px 30px var(--shadow-color);
+}
+
+.card-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, var(--primary-color), #9F7AEA);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+    color: var(--text-secondary);
+}
+
+.video-wrapper {
+    margin: 2rem 0;
+}
+
+.video-container {
+    position: relative;
+    /* aspect-ratio: 16/9; */
+    background: var(--bg-secondary);
+    border-radius: 1rem;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+    color: var(--text-primary);
+}
+
+video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.placeholder {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: var(--bg-secondary);
+}
+
+#placeholderImage {
+    object-fit: cover;
+    border-radius: 50%;
+    /* transform: scale(1.2); */
+}
+
+
+/* ===================================================================================== */
+/* Control buttons on UI */
+/* ===================================================================================== */
+
+
+.controls {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.75rem;
+    border: none;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.primary-btn {
+    background: var(--primary-color);
+    color: white;
+}
+
+.success-btn {
+    background: var(--success-color);
+    color: white;
+}
+
+.danger-btn {
+    background: var(--danger-color);
+    color: white;
+}
+
+.submit-btn {
+    background: var(--primary-color);
+    color: white;
+    width: 100%;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ===================================================================================== */
+/* Modal and spinner */
+/* ===================================================================================== */
+
+.status-message {
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+}
+
+.spinner {
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 2px solid var(--text-secondary);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* this is the total page bg */
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    /* Set alpha=0.5 for the background to be semi-transparent */
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+}
+
+/* this is the main box */
+.modal-content {
+    /* background: var(--card-bg); */
+    background: var(--bg-secondary);
+    padding: 2rem;
+    border-radius: 1rem;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+
+/* ===================================================================================== */
+/* No of frames */
+/* ===================================================================================== */
+/* Dropdown container */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background: var(--bg-secondary);
+    border-radius: 0.75rem;
+    padding: 0.5rem 1rem;
+    box-shadow: 0 4px 10px var(--shadow-color);
+    z-index: 100;
+    text-align: center;
+    min-width: 100px;
+
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.dropdown-content p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+}
+
+.dropdown-content ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.dropdown-content ul li {
+    cursor: pointer;
+    padding: 0.5rem 0;
+    color: var(--text-primary);
+    transition: background 0.2s ease;
+}
+
+.dropdown-content ul li:hover {
+    background: var(--primary-color);
+    color: #fff;
+}
+
+/* Show dropdown on button click */
+.dropdown:hover .dropdown-content {
+    display: block;
+}
+
+/* Dropdown button styling */
+.dropdown button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    /* Space between icon and text */
+    width: auto;
+    /* Automatically adjust width */
+    padding: 0.75rem 1.5rem;
+    text-align: center;
+}
+
+#frameDropdown ul li[data-value="100"]:hover {
+    background: var(--success-color);
+}
+
+#modeDropdown ul li[data-value="Static"]:hover {
+    background: var(--success-color);
+}
+
+.dropdown button i {
+    font-size: 1rem;
+}
+
+
+/* ===================================================================================== */
+/* Recording indicator */
+/* ===================================================================================== */
+
+.recording-indicator {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+    color: red;
+    font-weight: bold;
+    opacity: 0;
+    animation: none;
+    /* little bg blur */
+
+    padding: 0.5rem;
+    border-radius: 20px;
+    background: rgba(0, 0, 0, 0.15);
+}
+
+.recording-indicator i {
+    font-size: 1.5rem;
+}
+
+@keyframes flash {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+.recording-active {
+    animation: flash 1.5s infinite;
+    opacity: 1;
+}
+
+/* ===================================================================================== */
+/* Preview indicator */
+/* ===================================================================================== */
+
+.preview-indicator {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+    color: #ff9800;
+    font-weight: bold;
+    opacity: 0;
+    animation: none;
+
+    /* little bg blur */
+    padding: 0.5rem;
+    border-radius: 20px;
+    background: rgba(0, 0, 0, 0.15);
+}
+
+.preview-indicator i {
+    font-size: 1.5rem;
+}
+
+@keyframes flash {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+.preview-active {
+    animation: flash 1.5s infinite;
+    opacity: 1;
+}

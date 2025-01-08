@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/assets/infinity.ico" type="image/x-icon">
+    <title>Attendance Result</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/res_style.css">
+
+</head>
+
+<body>
+    {% include 'theme_switch.html' %}
+
+    <div class="results-container">
+        <div class="results-header">
+            <h1>Attendance Result</h1>
+        </div>
+
+        <!-- Timing section moved here, right after the header -->
+        <div class="timing-card">
+            <div class="timing-header">Class Timing Details</div>
+            <div class="timing-content">
+                <div class="timing-section">
+                    <h3>Start Time</h3>
+                    <div class="time-display">
+                        <span class="time">{{timings.start.hour}}:{{timings.start.minute}}:{{timings.start.second}}
+                            {{timings.start.pm}}</span>
+                        <span class="date">{{timings.start.day}}/{{timings.start.month}}/{{timings.start.year}}</span>
+                    </div>
+                </div>
+                <div class="timing-section">
+                    <h3>End Time</h3>
+                    <div class="time-display">
+                        <span class="time">{{timings.end.hour}}:{{timings.end.minute}}:{{timings.end.second}}
+                            {{timings.end.pm}}</span>
+                        <span class="date">{{timings.end.day}}/{{timings.end.month}}/{{timings.end.year}}</span>
+                    </div>
+                </div>
+                <div class="timing-section duration">
+                    <h3>Duration</h3>
+                    <div class="duration-display">
+                        <span>{{timings.duration.hours}} hours</span>
+                        <span>{{timings.duration.minutes}} minutes</span>
+                        <span>{{timings.duration.seconds}} seconds</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <table>
+            <tr>
+                <th>Register Number</th>
+                <!-- <th id="align_left">Name</th> -->
+                <th >Name</th>
+                <th>In Time</th>
+                <th>Out Time</th>
+                <th>Percentage</th>
+                <th>Status</th>
+            </tr>
+            {% for reg_no, student in register.items() %}
+            <tr>
+                <td id="align_center">{{ student['Reg_No'] }}</td>
+                <td id="align_left">{{ student['Name'] }}</td>
+                <td id="align_center">{{ student['First_In'] }}</td>
+                <td id="align_center">{{ student['Last_In'] }}</td>
+                <td id="align_center">{{ student['Percentage'] }}%</td>
+                <td id="align_center">{{ student['Status'] }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <div class="download-link">
+            <a href="/download">Download Excel File</a>
+        </div>
+        <div class="back-link">
+            <a href="/">Go back</a>
+        </div>
+
+        {% include 'footer.html' %}
+    </div>
+
+    <script src="/assets/script_theme.js"></script>
+</body>
+
+</html>

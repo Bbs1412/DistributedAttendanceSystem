@@ -172,9 +172,11 @@ cython_debug/
 
 # Custom
 .editorconfig
+*.cfg
 notes*
 temp_*
 Jsons/
 Uploads/
 Models/
 Images/
+.vscode/

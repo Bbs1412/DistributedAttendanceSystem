@@ -1,0 +1,12 @@
+{
+    "id": "log_count (only on server side), (auto assigned)",
+    "topic": "topic",
+    "status": "Success Error info",
+    "message": "message (optional)",
+    "timestamp": "get_timestamp()",
+    "data (optional)": {
+        "key": "...",
+        "file": "...",
+        "filename": "..."
+    }
+}

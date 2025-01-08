@@ -27,14 +27,15 @@ ATTENDANCE_REGISTER = os.environ.get('class_attendance')
 HOST = '127.0.0.1'
 PORT = 12345
 TIMEOUT = 8
-NO_OF_CLIENTS = 1
+NO_OF_CLIENTS = 2
 
 # Shared state
 clients = {}
 # 'sample_client_3': {
 #     'name': 'Sample Client',
 #     'socket': "python_data",
-#     'address': "192.168.13.12"
+#     'address': "192.168.13.12",
+#     'is_free': True
 # }
 
 for i in range(NO_OF_CLIENTS):
@@ -92,7 +93,7 @@ def handle_client_initialization(client_socket, client_address):
                 client_id = cid
                 # Block that client-id temporarily (else concurrency issues might occur)
                 clients[cid] = 'hold'
-
+                break
         print(
             f"{INFO} Client {client_id} : Connected Successfully {client_address}")
 
@@ -112,7 +113,8 @@ def handle_client_initialization(client_socket, client_address):
         clients[client_id] = {
             "name": client_name,
             "socket": client_socket,
-            "address": client_address
+            "address": client_address,
+            "is_free": True     # For dynamic load balancing only
         }
 
         # S2 - Send client ID assigned to the client:
@@ -161,11 +163,8 @@ def handle_client_initialization(client_socket, client_address):
 
 
 # ------------------------------------------------------------------------------
-# Load balancing strategies:
+# Static Load Balancing Functions:
 # ------------------------------------------------------------------------------
-
-def handle_error():
-    ...
 
 
 def static_mode_thread(image_list, timestamp_list, client_id):
@@ -186,7 +185,7 @@ def static_mode_thread(image_list, timestamp_list, client_id):
         handle_send(*send_message(
             client_socket, topic='Static Image',
             message=timestamp, file_path=image),
-            log_topic='Load Balancing', log_client_id=client_id,
+            log_topic='Load Balancing - Image', log_client_id=client_id,
             log_success_message=f'Image {i} - [{timestamp}] sent successfully.')
 
         print(f"{INFO} Client {client_id} : Image {i} - [{timestamp}] sent.")
@@ -194,7 +193,7 @@ def static_mode_thread(image_list, timestamp_list, client_id):
         # R1 - Receive the processed data from the client:
         resp = handle_recv(
             *receive_message(client_socket), expected_topic='Processed Data',
-            log_topic='Load Balancing', log_client_id=client_id,
+            log_topic='Load Balancing - Processed Data', log_client_id=client_id,
             log_success_message=f'Image {i} - [{timestamp}] processed successfully.')
 
         # Save the response:
@@ -205,7 +204,14 @@ def static_mode_thread(image_list, timestamp_list, client_id):
 
 
 def static_mode(image_files, timestamps, frames_count):
-    """Static load balancing strategy."""
+    """Static load balancing strategy.
+
+    Method:
+    - Divide the images equally among the clients.
+    - Run parallel threads for each client.
+    - Each client processes the images in parallel (distributed processing).
+    - Each client sends back the processed data to the server.
+    """
 
     print(f"{INFO} Static mode selected. Starting static load balancing...")
     per_client = frames_count // NO_OF_CLIENTS
@@ -237,8 +243,92 @@ def static_mode(image_files, timestamps, frames_count):
     print(f"{INFO} Static load balancing completed.")
 
 
-def dynamic_mode(client_sockets):
-    ...
+# ------------------------------------------------------------------------------
+# Dynamic Load Balancing Functions:
+# ------------------------------------------------------------------------------
+
+
+def dynamic_mode_thread(image, timestamp, client_id):
+    client_socket = clients[client_id]['socket']
+    clients[client_id]['is_free'] = False  # Mark client as busy
+
+    try:
+        # Send the task to the client
+        handle_send(*send_message(
+            client_socket, topic='Dynamic Task', message=timestamp, file_path=image),
+            log_topic='Load Balancing', log_client_id=client_id,
+            log_success_message=f"Task [{timestamp}] sent successfully.")
+        print(f"{INFO} Client {client_id} : Task [{timestamp}] sent.")
+
+        # Wait for the client to process the task and respond
+        resp = handle_recv(
+            *receive_message(client_socket), expected_topic='Processed Data',
+            log_topic='Load Balancing - Processed Data', log_client_id=client_id,
+            log_success_message=f"Task [{timestamp}] processed successfully.")
+
+        # Save the response
+        processed_data = json.loads(resp['message'])
+        append_response(processed_data)
+
+    except Exception as e:
+        print(f"[ERROR] Client {client_id} failed to process task: {e}")
+
+    finally:
+        clients[client_id]['is_free'] = True  # Mark client as free again
+
+
+def dynamic_mode(image_files, timestamps, frames_count):
+    """Dynamic load balancing strategy.
+
+    Method:
+    - All the images are stored in task_queue.
+    - Send the images to the clients one by one.
+    - The client which is free processes the image.
+    - The client sends back the processed data to the server.
+    """
+
+    task_queue = list(zip(image_files, timestamps))
+    total_tasks = len(task_queue)
+
+    print(f"{INFO} Dynamic mode selected. Starting dynamic load balancing...")
+
+    while len(task_queue) > 0:
+        for client_id, client in clients.items():
+            if client['is_free'] and len(task_queue) > 0:
+                # Assign the next task to the free client
+                image, timestamp = task_queue.pop(0)
+                thread = threading.Thread(
+                    target=dynamic_mode_thread,
+                    args=(image, timestamp, client_id),
+                    daemon=True
+                )
+                thread.start()
+
+        # The thread in the end marks the client as free again
+        # So we do not need the thread.join() here
+
+        # Adding a small delay to avoid busy-waiting
+        threading.Event().wait(0.1)
+
+    # Wait for all (ongoing) threads to finish
+    wait = True
+    while wait:
+        wait = False
+        for client_id, client in clients.items():
+            if not client['is_free']:
+                wait = True
+                print(f"{WARN} Client {client_id} is still processing a task. Waiting...")
+                threading.Event().wait(1)
+
+    # Send 'Done' message to all clients
+    for client_id, client in clients.items():
+        client_socket = client['socket']
+
+        handle_send(*send_message(client_socket, topic='Dynamic Task', message="Done"),
+                    log_topic='Load Balancing', log_client_id=client_id,
+                    log_success_message='All tasks processed successfully.')
+
+    print(f"{INFO} All tasks processed successfully.")
 
 # ------------------------------------------------------------------------------
 # Main driver part:
@@ -329,7 +419,7 @@ def main():
 
 
 # ------------------------------------------------------------------------------
-# Entry point:
+# Entry point: (Can run this for testing)
 # ------------------------------------------------------------------------------
 
 if __name__ == "__main__":

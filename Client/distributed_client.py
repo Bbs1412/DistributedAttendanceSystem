@@ -155,7 +155,7 @@ def static_load_balancing(client_socket):
 
         # Process the image:
         print(f"\t\t : Processing... ", end='\r')
-        result = process_image(image_name)
+        result = dummy_process_image(image_name)
 
         # Send the result back to the server:
         handle_send(*send_message(client_socket,
@@ -163,20 +163,45 @@ def static_load_balancing(client_socket):
 
     return True
 
+
 def dynamic_load_balancing(client_socket):
     """Dynamic load balancing logic."""
-    try:
-        ...
-        return True
 
-    except Exception as e:
-        return e
+    # The client can get any number of images from the server.
+    while True:
+        # R1 - Receive the image from the server:
+        resp = handle_recv(
+            *receive_message(client_socket, save_folder=IMAGES_FOLDER),
+            expected_topic='Dynamic Task')
+
+        # If 'message' is = 'done', it means all the images are processed:
+        if resp["message"].lower() == "done":
+            break
+
+        image_time = resp["message"]
+        image_name = resp["data"]["filename"]
+        print(f"Received image \t : '{image_name}' of [{image_time}]")
+
+        # Process the image:
+        print(f"\t\t : Processing... ", end='\r')
+        result = dummy_process_image(image_name)
+
+        # Send the result back to the server:
+        handle_send(*send_message(client_socket,
+                    topic="Processed Data", message=json.dumps(result)))
+
+    return True
 
 
-def process_image(image_name):
+# ------------------------------------------------------------------------------
+# Dummy Image processing function:
+# ------------------------------------------------------------------------------
+
+def dummy_process_image(image_name):
     """Mock function to process an image and return JSON."""
     # Replace this with actual image processing logic
-    time.sleep(2.5)
+    import random
+    time.sleep(random.randint(0, 5))
     return {"image_name": image_name, "status": "processed", "data": "some_data"}
 
 # ------------------------------------------------------------------------------
@@ -214,6 +239,7 @@ def main():
     resp = handle_recv(*receive_message(client_socket),
                        expected_topic='Load Balancing')
     load_balancing = resp["message"]
+    print(f"`{load_balancing}` Load balancing mode selected.")
 
     # Load balancing phase:
     if load_balancing.lower() == "static":

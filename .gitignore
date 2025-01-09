@@ -181,11 +181,10 @@ Models/
 Images/
 .vscode/
 logs.json
+Docs/
 
 # Temp:
 Client/logger.py
 Client/networking.py
-Client/net*
-
 
 

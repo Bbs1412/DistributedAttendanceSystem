@@ -16,6 +16,7 @@ from networking import receive_message, send_message, handle_recv, handle_send
 
 load_dotenv()
 
+# Required files and folders:
 CLASS_REGISTER = os.environ.get('class_register')
 UPLOADS = os.environ.get('upload_folder')
 MODELS = os.environ.get('face_models_folder')
@@ -24,12 +25,13 @@ UPLOADED_DATA = os.environ.get('uploaded_data')
 ATTENDANCE_LOG_FILE = os.environ.get('attendance_raw_file')
 ATTENDANCE_REGISTER = os.environ.get('class_attendance')
 
-HOST = '127.0.0.1'
-PORT = 12345
-TIMEOUT = 8
-NO_OF_CLIENTS = 2
+# Required server configurations:
+HOST = str(os.environ.get('server_host'))
+PORT = int(os.environ.get('server_port'))
+TIMEOUT = int(os.environ.get('server_timeout'))
+NO_OF_CLIENTS = int(os.environ.get('no_of_clients'))
 
-# Shared state
+# Global clients dictionary to access clients from anywhere:
 clients = {}
 # 'sample_client_3': {
 #     'name': 'Sample Client',
@@ -38,12 +40,16 @@ clients = {}
 #     'is_free': True
 # }
 
+# Global server socket to access from anywhere:
+server_socket = None
+
 for i in range(NO_OF_CLIENTS):
     clients[str(i + 1)] = None
 
 lock = threading.Lock()
 responses = []
 
+# Console logging modes:
 INFO = '\033[94m[INFO]\033[0m'
 WARN = '\033[93m[WARN]\033[0m'
 ERROR = '\033[91m[ERROR]\033[0m'
@@ -68,19 +74,70 @@ def get_timestamp():
 # Manage the connections with clients:
 # ------------------------------------------------------------------------------
 
-# def handle_error(client_id, error, topic):
-#     l.create_log(
-#         topic=topic,
-#         message=error,
-#         status='Error',
-#         client_id=client_id
-#     )
-#     raise Exception(error)
+def start_server():
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.settimeout(TIMEOUT)
+    server_socket.bind((HOST, PORT))
+    server_socket.listen(5)
+
+    print(f"{INFO} Server started at `{HOST}:{PORT}`")
+    l.create_log(
+        topic='Server', status='Info', client_id=-1,
+        message=f"Server started at `{HOST}:{PORT}` for timeout = {TIMEOUT} seconds.")
+
+    return server_socket
+
+
+def stop_server():
+    global server_socket
+    server_socket.close()
+    print(f"{INFO} Server shut down.")
+    l.create_log(topic='Server', status='Info', client_id=-1,
+                 message="Server shut down.")
+
+
+def get_clients():
+    """Get all the clients connected to the server. 
+    Store them in the clients dictionary."""
+    print(f"{INFO} Waiting for {NO_OF_CLIENTS} clients to connect...")
+
+    client_sockets = []
+    client_threads = []
+
+    while len(client_sockets) < NO_OF_CLIENTS:
+        client_socket, client_address = server_socket.accept()
+        client_sockets.append(client_socket)
+
+        client_init_thread = threading.Thread(
+            target=handle_client_initialization,
+            args=(client_socket, client_address),
+            daemon=True
+        )
+        client_threads.append(client_init_thread)
+        client_init_thread.start()
+
+    # Wait for all client initialization threads to finish
+    for client_init_thread in client_threads:
+        client_init_thread.join()
+
+    print(f"{INFO} All {NO_OF_CLIENTS} clients connected.")
+    return True
+
+
+def release_clients():
+    """Release all the clients connected to the server."""
+    for client_id, client in clients.items():
+        if client is not None:
+            client['socket'].close()
+            clients[client_id] = None
+    print(f"{INFO} All clients released.")
+    l.create_log(topic='Connection', status='Info', client_id=-1,
+                 message="All clients released.")
 
 
 def handle_client_initialization(client_socket, client_address):
     """Handle initial communication with a client."""
-
+    global clients
     try:
         client_id = 0
         client_name = 'Unresolved'
@@ -94,8 +151,8 @@ def handle_client_initialization(client_socket, client_address):
                 # Block that client-id temporarily (else concurrency issues might occur)
                 clients[cid] = 'hold'
                 break
-        print(
-            f"{INFO} Client {client_id} : Connected Successfully {client_address}")
+
+        print(f"{INFO} Client {client_id} : Connected Successfully {client_address}")
 
         # S1 - Send welcome message to client:
         handle_send(*send_message(client_socket, topic='Hi'),
@@ -188,7 +245,7 @@ def static_mode_thread(image_list, timestamp_list, client_id):
             log_topic='Load Balancing - Image', log_client_id=client_id,
             log_success_message=f'Image {i} - [{timestamp}] sent successfully.')
 
-        print(f"{INFO} Client {client_id} : Image {i} - [{timestamp}] sent.")
+        print(f"{INFO} Client {client_id} : Image {i:02d} - [{timestamp}] sent.")
 
         # R1 - Receive the processed data from the client:
         resp = handle_recv(
@@ -330,42 +387,14 @@ def dynamic_mode(image_files, timestamps, frames_count):
 
     print(f"{INFO} All tasks processed successfully.")
 
+
 # ------------------------------------------------------------------------------
-# Main driver part:
+# Load Balancing Manager:
 # ------------------------------------------------------------------------------
 
-
-def main():
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.settimeout(TIMEOUT)
-    server_socket.bind((HOST, PORT))
-    server_socket.listen(5)
-    print(f"{INFO} Server started at `{HOST}:{PORT}`")
-
-    l.create_log(
-        topic='Server', status='Info', client_id=-1,
-        message=f"Server started at `{HOST}:{PORT}` for timeout = {TIMEOUT} seconds.")
-
-    client_sockets = []
-    client_threads = []
-
-    while len(client_sockets) < NO_OF_CLIENTS:
-        client_socket, client_address = server_socket.accept()
-        client_sockets.append(client_socket)
-
-        client_init_thread = threading.Thread(
-            target=handle_client_initialization,
-            args=(client_socket, client_address),
-            daemon=True
-        )
-        client_threads.append(client_init_thread)
-        client_init_thread.start()
-
-    # Wait for all client initialization threads to finish
-    for client_init_thread in client_threads:
-        client_init_thread.join()
-
-    print(f"{INFO} All {NO_OF_CLIENTS} clients connected. Starting load balancing...")
+def start_load_balancing():
+    """Start the load balancing strategy. To handle the attendance calculation."""
+    print(f"{INFO} Starting the load balancing strategy...")
 
     # Read the uploaded_data json file:
     with open(UPLOADED_DATA, 'r') as f:
@@ -404,22 +433,38 @@ def main():
                      status='Error', client_id=-1, message=msg)
         raise ValueError(msg)
 
+
+# ------------------------------------------------------------------------------
+# Main driver part:
+# ------------------------------------------------------------------------------
+
+
+def main():
+    global server_socket
+    server_socket = start_server()
+
+    # Get all the clients connected to the server
+    get_clients()
+
+    if input(f"{WARN} Press Enter to start the load balancing strategy...") != '':
+        print(f"{WARN} Load balancing aborted. Exiting...")
+        exit()
+
+    # Start the attendance calculation with decided load balancing strategy:
+    start_load_balancing()
+
     # Compile the results here only or hand it over to the main flask server
     ...
 
     # Close all client sockets and the server socket
-    l.create_log(topic='Server', status='Info', client_id=-1,
-                 message="Shutting down the server and all client connections.")
-
-    for client_socket in client_sockets:
-        client_socket.close()
-    print(f"{INFO} Clients disconnected.")
-    server_socket.close()
-    print(f"{INFO} Server shut down.")
+    release_clients()
+    stop_server()
 
 
 # ------------------------------------------------------------------------------
 # Entry point: (Can run this for testing)
+# Otherwise comment this part below before deploying.
+# The web-server will import required functions from this file.
 # ------------------------------------------------------------------------------
 
 if __name__ == "__main__":

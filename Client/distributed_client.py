@@ -21,6 +21,7 @@ from networking import receive_message, send_message, handle_send, handle_recv
 SERVER_IP = "localhost"
 SERVER_PORT = 12345
 DEVICE_NAME = socket.gethostname()
+TIMEOUT = None    # set to 'None' or any 'int' (seconds)
 
 MODELS_FOLDER = './Models/'
 IMAGES_FOLDER = './Images/'
@@ -71,6 +72,36 @@ def print_header(title=None, pre_lines=1, post_lines=1, header=True, footer=True
     if footer:
         print(red_color, '-' * 80, reset, sep='')
     print('\n' * post_lines, end='')
+
+
+def wait_animation(prefix: str = '', suffix: str = '',
+                   trail_lines: int = 5, stop_event: threading.Event = None):
+    """Wait animation with a progress bar and clock-like animation."""
+    clock_ticks = ['🕐', '🕑', '🕒', '🕓', '🕔', '🕕']
+    i = -1
+    box_count = 5
+    print('\n' * trail_lines, end='')
+
+    while True:
+        print('\033[F' * trail_lines, end='')
+        i += 1
+
+        # Choose next clock tick:
+        clock = clock_ticks[i % len(clock_ticks)]
+        # Calc colored boxes:
+        colored = i % (box_count + 1)
+        progress = f"{'🟩' * colored}{'⬛' * (box_count - colored)}"
+        print(f"{prefix} {clock} Processing {progress}", end='\r')
+
+        if stop_event and stop_event.is_set():  # Stop condition
+            print(' ' * 80, end='\r')  # Clear the line
+            break
+
+        time.sleep(0.5)
+        print('\n' * trail_lines, end='')
+
+    # print(f"{prefix} Processing completed {suffix}")
+
 
 # ------------------------------------------------------------------------------
 # Manage the connection with server:
@@ -151,11 +182,30 @@ def static_load_balancing(client_socket):
 
         image_time = resp["message"]
         image_name = resp["data"]["filename"]
-        print(f"Received image \t : '{image_name}' of [{image_time}]")
+        # print(f"Received image \t : '{image_name}' of [{image_time}]")
+
+        i_date, i_time, i_cnt = image_time.split(',')
+        print(
+            f"Received image \t : 📂 '{image_name}' [📅 {i_date} 🕑{i_time} 🆔{i_cnt}]")
+
+        # # Process the image:
+        # print(f"\t\t : ⏳ Processing... ", end='\r')
+
+        # Process the image with animation:
+        stop_event = threading.Event()
+        trail_lines = 5
+        animation_thread = threading.Thread(
+            target=wait_animation,
+            args=("\t\t :", '', trail_lines, stop_event)
+        )
+        animation_thread.start()
 
         # Process the image:
-        print(f"\t\t : Processing... ", end='\r')
         result = dummy_process_image(image_name)
+
+        # Stop the animation:
+        stop_event.set()
+        animation_thread.join()
 
         # Send the result back to the server:
         handle_send(*send_message(client_socket,
@@ -201,7 +251,9 @@ def dummy_process_image(image_name):
     """Mock function to process an image and return JSON."""
     # Replace this with actual image processing logic
     import random
-    time.sleep(random.randint(0, 5))
+    t = 1
+    t = random.randint(0, 3)
+    time.sleep(t)
     return {"image_name": image_name, "status": "processed", "data": "some_data"}
 
 # ------------------------------------------------------------------------------
@@ -217,7 +269,9 @@ def main():
 
     # Create a client socket:
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.settimeout(10)
+
+    if TIMEOUT is not None:
+        client_socket.settimeout(TIMEOUT)
 
     # Connect to the server and complete initial setup phase:
     print_header(pre_lines=0, post_lines=1, footer=False,

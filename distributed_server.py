@@ -615,8 +615,7 @@ def driver_function():
     """
     start_load_balancing()
     compile_results()
-    release_clients()
-    stop_server()
+    
 
 
 # ------------------------------------------------------------------------------
@@ -638,3 +637,6 @@ if __name__ == "__main__":
         exit()
 
     driver_function()
+    release_clients()
+    stop_server()
+    exit(0)

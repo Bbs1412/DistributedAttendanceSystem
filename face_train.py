@@ -5,7 +5,7 @@ import face_recognition
 from dotenv import load_dotenv
 
 load_dotenv()
-static_url = os.environ.get('static_url')
+
 
 class Person:
     def __init__(self, reg, name, image_name, display_name=None, pickle_name=None):
@@ -17,10 +17,8 @@ class Person:
         `pickle_name:` (Optional) Name of pickle file to create (default to {name}.pkl)  
         """
         self.RegNo = reg
-        # self.name = "_".join(name.split(" "))
         self.name = name
-
-        self.image_url = os.path.join(static_url, "pics", image_name)
+        self.image_url = os.path.join("pics", image_name)
 
         if display_name is not None:
             self.disp_name = display_name
@@ -28,10 +26,9 @@ class Person:
             self.disp_name = self.name
 
         if pickle_name is not None:
-            self.pickle_name = os.path.join(static_url, "models", pickle_name)
+            self.pickle_name = os.path.join("models", pickle_name)
         else:
-            self.pickle_name = os.path.join(
-                static_url, "models", f"{self.name}.pkl")
+            self.pickle_name = os.path.join("models", f"{self.name}.pkl")
 
     def view(self):
         def print_itm(title, detail):
@@ -43,7 +40,7 @@ class Person:
         print_itm("Image: ", self.image_url)
         print_itm("Pickle: ", self.pickle_name)
 
-    def give_json(self):
+    def get_json(self):
         return {
             "Reg_No": self.RegNo,
             "Name": self.name,
@@ -56,12 +53,11 @@ class Person:
 # bs = Person("Bhushan Songire", "Bhushan", "bhushan.jpg", "bs.pkl")
 
 people = [
-    # Person(reg, name, image_name(just image.jpg), 
+    # Person(reg, name, image_name(just image.jpg),
     #           (optional)display_name, (optional)pickle_name),
     Person("22BCE1539", "Bhushan Songire", "bhushan.jpg", "Bhushan", "bs.pkl"),
-    Person("22BCE1580", "Bhavyata Kaur", "bhavyata.jpg", "Bhavyata", "bk.pkl"),
-    Person("22BCE1582", "Abhijeet Soni", "abhijeet.jpg", "as.pkl"),
-    Person("22BCE1111", "Vedansh Kumar", "vedansh.jpg", "vk.pkl"),
+    Person("22BCE1575", "Sarvesh Nalawade", "Sarvesh.jpg", "Sarvesh", "sn.pkl"),
+    Person("22BCE1636", "Vedant Chaudhari", "Vedant.jpg", "Vedant", "vc.pkl"),
 ]
 
 
@@ -86,13 +82,13 @@ for p in people:
     except Exception as e:
         print("\t\t[#] Some error occurred!", e)
 
-    class_register.append(p.give_json())
+    class_register.append(p.get_json())
     print()
 
 
 # student register
 # Define the path for the JSON file
-class_file = os.path.join(static_url, os.environ.get('class_register'))
+class_file = os.environ.get('class_register')
 with open(class_file, "w") as file:
     json.dump(class_register, file, indent=4)
 print(F"Saved file: `{class_file}`")

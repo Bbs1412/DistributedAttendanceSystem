@@ -55,10 +55,14 @@ def process_image(timestamps: Union[list, str], base64s: Union[list, str]):
 
         if file_base_name == last_saved:
             same_name_count += 1
-            file_base_name += f'_{same_name_count}'
+            # file_base_name += f'_{same_name_count}'
         else:
             last_saved = file_base_name
             same_name_count = 0
+
+        # Irrespective of the above if-else, always append the count
+        # Maintains same filename-length for all images
+        file_base_name += f'_{same_name_count:02d}'
         js_modified_time_stamps.append(f"{timestamp}, {same_name_count}")
 
         file_name = f'{file_base_name}.{extension}'

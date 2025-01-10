@@ -175,13 +175,15 @@ cython_debug/
 *.cfg
 notes*
 temp_*
+
 Jsons/
 Uploads/
 Models/
 Images/
+Docs/
+Pics/
 .vscode/
 logs.json
-Docs/
 
 # Temp:
 Client/logger.py

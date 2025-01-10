@@ -1,4 +1,5 @@
 import os
+import time
 import json
 import socket
 import threading
@@ -111,7 +112,7 @@ def get_clients():
 
         client_init_thread = threading.Thread(
             target=handle_client_initialization,
-            args=(client_socket, client_address),
+            args=(client_socket, client_address, True),
             daemon=True
         )
         client_threads.append(client_init_thread)
@@ -136,9 +137,11 @@ def release_clients():
                  message="All clients released.")
 
 
-def handle_client_initialization(client_socket, client_address):
+def handle_client_initialization(client_socket, client_address, slow=False):
     """Handle initial communication with a client."""
     global clients
+    slow_mode = 1 if slow else 0
+
     try:
         client_id = 0
         client_name = 'Unresolved'
@@ -153,12 +156,13 @@ def handle_client_initialization(client_socket, client_address):
                 clients[cid] = 'hold'
                 break
 
-        print(f"{INFO} Client {client_id} : Connected Successfully {client_address}")
+        # print(f"{INFO} Client {client_id} : Connected Successfully {client_address}")
 
         # S1 - Send welcome message to client:
         handle_send(*send_message(client_socket, topic='Hi'),
                     log_topic='Connection - Welcome', log_client_id=client_id,
                     log_success_message='Client welcome message sent successfully.')
+        time.sleep(slow_mode)
 
         # R1 - Receive client name from client:
         resp = handle_recv(
@@ -175,17 +179,21 @@ def handle_client_initialization(client_socket, client_address):
             "is_free": True     # For dynamic load balancing only
         }
 
+        print(f"{INFO} Client {client_id} : Connected Successfully {client_address} - `{client_name}`")
+
         # S2 - Send client ID assigned to the client:
         handle_send(
             *send_message(client_socket, topic='Client Id', message=client_id),
             log_topic='Connection - Client Info',
             log_client_id=client_id, log_success_message=client_name)
+        time.sleep(slow_mode)
 
         # S3 - Send class file to the client:
         handle_send(*send_message(
             client_socket, topic='Class Register', file_path=CLASS_REGISTER),
             log_client_id=client_id, log_topic='Initialization - Class Register',
             log_success_message='Class register sent successfully.')
+        time.sleep(slow_mode)
 
         # S4 - Send the model count first to client:
         count = str(len(os.listdir(MODELS)))
@@ -193,7 +201,8 @@ def handle_client_initialization(client_socket, client_address):
             *send_message(client_socket, topic='Models Count', message=count),
             log_topic='Initialization - Models Count', log_client_id=client_id,
             log_success_message='Model count sent successfully.')
-
+        time.sleep(slow_mode)
+        
         # S5 - Send all the the models to the client:
         for i, file in enumerate(os.listdir(MODELS)):
             file_path = os.path.join(MODELS, file)
@@ -246,7 +255,7 @@ def static_mode_thread(image_list, timestamp_list, client_id):
             log_topic='Load Balancing - Image', log_client_id=client_id,
             log_success_message=f'Image {i} - [{timestamp}] sent successfully.')
 
-        print(f"{INFO} Client {client_id} : Image {i:02d} - [{timestamp}] sent.")
+        print(f"{INFO} Client {client_id} : Image {(i+1):02d} - [{timestamp}] sent.")
 
         # R1 - Receive the processed data from the client:
         resp = handle_recv(
@@ -619,7 +628,7 @@ def driver_function():
 
 if __name__ == "__main__":
     # # compile_results(debug=True)
-    
+
     start_server()
     get_clients()
 

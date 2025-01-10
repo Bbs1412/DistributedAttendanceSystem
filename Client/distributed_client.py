@@ -94,13 +94,14 @@ def wait_animation(prefix: str = '', suffix: str = '',
         # Calc colored boxes:
         colored = i % (box_count + 1)
         progress = f"{'🟩' * colored}{'⬛' * (box_count - colored)}"
+        # print(f"{prefix} {clock} Processing {progress}", end='\n')
         print(f"{prefix} {clock} Processing {progress}", end='\r')
 
         if stop_event and stop_event.is_set():  # Stop condition
             print(' ' * 80, end='\r')  # Clear the line
             break
 
-        time.sleep(0.5)
+        time.sleep(0.4)
         print('\n' * trail_lines, end='')
 
     # print(f"{prefix} Processing completed {suffix}")
@@ -169,120 +170,164 @@ def connect_to_server(client_socket):
 
 def static_load_balancing(client_socket):
     """Static load balancing logic."""
+    try:
+        # R1 - Receive the images count from the server:
+        resp = handle_recv(*receive_message(client_socket),
+                           expected_topic='Static Images Count')
+        images_count = int(resp["message"])
+        print(f"Total Image count : '{images_count}'")
 
-    # R1 - Receive the images count from the server:
-    resp = handle_recv(*receive_message(client_socket),
-                       expected_topic='Static Images Count')
-    images_count = int(resp["message"])
-    print(f"Total Image count : '{images_count}'")
+        # Receive the images and return the responses:
+        for i in range(images_count):
+            # R2 - Receive the image from the server:
+            resp = handle_recv(
+                *receive_message(client_socket, save_folder=IMAGES_FOLDER),
+                expected_topic='Static Image')
 
-    # Receive the images and return the responses:
-    for i in range(images_count):
-        # R2 - Receive the image from the server:
-        resp = handle_recv(
-            *receive_message(client_socket, save_folder=IMAGES_FOLDER),
-            expected_topic='Static Image')
+            image_timestamp = resp["message"]
+            image_name = resp["data"]["filename"]
+            i_date, i_time, i_cnt = image_timestamp.split(',')
+            print(
+                f"Received image \t : 📂 '{image_name}' [📅 {i_date} 🕑{i_time} 🆔{i_cnt}]")
 
-        image_time = resp["message"]
-        image_name = resp["data"]["filename"]
-        i_date, i_time, i_cnt = image_time.split(',')
-        print(
-            f"Received image \t : 📂 '{image_name}' [📅 {i_date} 🕑{i_time} 🆔{i_cnt}]")
+            # Process the image:
+            result = process_image(
+                image_name, image_timestamp, min_time=3, max_time=6)
 
-        # Process the image with animation:
-        stop_event = threading.Event()
-        trail_lines = 10
-        animation_thread = threading.Thread(
-            target=wait_animation,
-            args=("\t\t :", '', trail_lines, stop_event)
-        )
-        animation_thread.start()
+            # Send the result back to the server:
+            handle_send(*send_message(client_socket,
+                        topic="Processed Data", message=json.dumps(result)))
 
-        # Process the image:
-        result = process_image(image_name)
+    except KeyboardInterrupt:
+        print('User Interrupted the process. Stopping the Load Balancing.')
 
-        # Stop the animation:
-        stop_event.set()
-        animation_thread.join()
-
-        # Send the result back to the server:
-        handle_send(*send_message(client_socket,
-                    topic="Processed Data", message=json.dumps(result)))
-
-    return True
+    finally:
+        return True
 
 
 def dynamic_load_balancing(client_socket):
     """Dynamic load balancing logic."""
     image_processed_count = 0
-    # The client can get any number of images from the server.
-    while True:
-        # R1 - Receive the image from the server:
-        resp = handle_recv(
-            *receive_message(client_socket, save_folder=IMAGES_FOLDER),
-            expected_topic='Dynamic Task')
 
-        # If 'message' is = 'done', it means all the images are processed:
-        if resp["message"].lower() == "done":
-            break
+    try:
+        # The client can get any number of images from the server.
+        while True:
+            # R1 - Receive the image from the server:
+            resp = handle_recv(
+                *receive_message(client_socket, save_folder=IMAGES_FOLDER),
+                expected_topic='Dynamic Task')
 
-        image_timestamp = resp["message"]
-        image_name = resp["data"]["filename"]
-        i_date, i_time, i_cnt = image_timestamp.split(',')
-        print(
-            f"Received image \t : 📂 '{image_name}' [📅 {i_date} 🕑{i_time} 🆔{i_cnt}]")
+            # If 'message' is = 'done', it means all the images are processed:
+            if resp["message"].lower() == "done":
+                break
 
-        # Process the image with animation:
-        stop_event = threading.Event()
-        trail_lines = 5
-        animation_thread = threading.Thread(
-            target=wait_animation,
-            args=("\t\t :", '', trail_lines, stop_event)
-        )
-        animation_thread.start()
+            image_timestamp = resp["message"]
+            image_name = resp["data"]["filename"]
+            i_date, i_time, i_cnt = image_timestamp.split(',')
+            print(
+                f"Received image \t : 📂 '{image_name}' [📅 {i_date} 🕑{i_time} 🆔{i_cnt}]")
 
-        # Process the image:
-        result = process_image(image_name, image_timestamp)
-        image_processed_count += 1
+            # Process the image:
+            result = process_image(
+                image_name, image_timestamp, min_time=3, max_time=6)
+            image_processed_count += 1
 
-        # Stop the animation:
-        stop_event.set()
-        animation_thread.join()
+            # Send the result back to the server:
+            handle_send(*send_message(client_socket,
+                        topic="Processed Data", message=json.dumps(result)))
 
-        # Send the result back to the server:
-        handle_send(*send_message(client_socket,
-                    topic="Processed Data", message=json.dumps(result)))
+    except KeyboardInterrupt:
+        print('User Interrupted the process. Stopping the Load Balancing.')
 
-    print(f'Processed Total [{image_processed_count}] Images.')
-    return True
-
+    finally:
+        print(f'Processed Total [{image_processed_count}] Images.')
+        return True
 
 # ------------------------------------------------------------------------------
 # Dummy Image processing function:
 # ------------------------------------------------------------------------------
 
-def process_image(image_name, timestamp):
+
+def process_image(image_name, timestamp, min_time=0, max_time=5):
     """
-    Fn made to ease switching between dummy and actual image processing.
-    For testing purposes.
-    Can be used to simulate the load balancing between the clients.
-    Two clients can be coded with diff sleep times in dummy_process_image fn.
-    Specifically to test the dynamic load balancing.
+    Process the image and return the JSON response.
+
+    Usage:
+        + Fn made to ease switching between dummy and actual image processing.
+        + For testing purposes.
+        + Can be used to simulate the load balancing between the clients.
+        + Two clients can be coded with diff min_time and max_time.
+        + To set exact same time for processing image, set min_time=max_time=<time> 
+        + Specifically to test the dynamic load balancing.
+
+    Args:
+        image_name (str): The name of the image.
+        timestamp (str): The timestamp of the image.
+        min_time (int, optional): Minimum time to take for processing the image.
+        max_time (int, optional): Maximum time to take for processing the image.
+
+    Returns:
+        dict: The JSON response of the image processing.
     """
+    # --------------------------------------------------------------------
+    # Set one mode here: true=dummy, false=real
+    dummy_mode = False
+    # --------------------------------------------------------------------
+
     image_path = os.path.join(IMAGES_FOLDER, image_name)
-    # return dummy_process_image(image_path, timestamp)
-    return attendance.check_image(image_path, timestamp)
+
+    # Process the image with animation:
+    stop_event = threading.Event()
+    trail_lines = 5
+    animation_thread = threading.Thread(
+        target=wait_animation,
+        args=("\t\t :", '', trail_lines, stop_event)
+    )
+    animation_thread.start()
+
+    # Process the image:
+    try:
+        if dummy_mode:
+            resp = dummy_process_image(image_path, timestamp)
+        else:
+            resp = attendance.check_image(image_path, timestamp)
+
+        # --------------------------------------------------------------------
+        # Common part in both modes : If min_time is set, ensure that
+        # minimum min_time seconds [and] maximum max_time seconds are spent
+        # --------------------------------------------------------------------
+        time_taken = resp["time_records"]["task_time_taken"]
+
+        if min_time > 0:
+            # pick one random time delay (float)
+            # to complete (random) time somewhere between min and max asked
+            # If you want exact time, pass both (min, max) parameters as same value
+            time_remaining_for_min_time = max(0, min_time - time_taken)
+            time_remaining_for_max_time = max(0, max_time - time_taken)
+
+            random_delay = random.uniform(
+                time_remaining_for_min_time, time_remaining_for_max_time)
+            time.sleep(random_delay)
+
+    except KeyboardInterrupt:
+        print('User Interrupted the process. Stopping the image processing.')
+    except Exception as e:
+        print(f"Error in processing image: {e}")
+        resp = None
+    finally:
+        # Stop the animation:
+        stop_event.set()
+        animation_thread.join()
+
+    return resp
 
 
 def dummy_process_image(image_name, timestamp):
     """Mock function to process an image and return JSON."""
-    t = random.randint(0, 5)
-    t = 5
-    time.sleep(t)
-
     people = ["no one", "someone", "everyone"]
     present = []
 
+    # Randomly select any number of people present in the image:
     for i in range(random.randint(0, len(people))):
         c = random.choice(people)
         if c not in present:
@@ -293,7 +338,8 @@ def dummy_process_image(image_name, timestamp):
         "time_records": {
             "task_start_time": "01/01/2000, 00:00:00 AM",
             "task_end_time": "12/12/2012, 12:12:12 PM",
-            "task_time_taken": t
+            "task_time_taken": 0,
+            "note": "This is a dummy response."
         },
         "people_present": present
     }
@@ -329,7 +375,7 @@ def main():
 
     # Initialize the attendance module:
     attendance.init()
-    
+
     # Next phase:
     print_header(pre_lines=1, post_lines=1, footer=False,
                  title='Load Balancing Phase with server')
@@ -365,4 +411,18 @@ def main():
 # ------------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    main()
+    # main()
+
+    print_header('Dummy Image Processing:', pre_lines=1, post_lines=1)
+
+    # wait_animation('\t', '', 5)
+    # stop_event = threading.Event()
+    # trail_lines = 5
+    # animation_thread = threading.Thread(
+    #     target=wait_animation,
+    #     args=("\t\t :", '', trail_lines, stop_event)
+    # )
+    # animation_thread.start()
+    # time.sleep(5)
+    # stop_event.set()
+    # animation_thread.join()

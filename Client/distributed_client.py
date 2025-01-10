@@ -62,18 +62,57 @@ def get_timestamp():
     return datetime.now().strftime('%Y-%m-%d_%I-%M-%S_%p')
 
 
-def print_header(title=None, pre_lines=1, post_lines=1, header=True, footer=True):
+def print_header(
+        note: str = '', box_style: bool = True,
+        header_line: bool = False, footer_line: bool = False,
+        pre_lines: int = 1, post_lines: int = 1,
+        emoji_count: int = 0
+):
+    terminal_width = os.get_terminal_size().columns
+    w_max = terminal_width - 15
+
+    if note:
+        note = note.strip()
+        if len(note) > w_max:
+            note = note[:w_max-5] + ' ... '
+
     red_color = '\033[91m'
     blue_color = '\033[94m'
+    green_color = '\033[92m'
+    yellow_color = '\033[93m'
     reset = '\033[0m'
 
+    def print_in_box(text, line_color=yellow_color, text_color=yellow_color):
+        sample = """
+            ╭───────────────────────────────────────────────────────────────────╮
+            | ⏩                       Hello World                          ⏪ |
+            ╰───────────────────────────────────────────────────────────────────╯
+            """
+        line = f'{line_color}|{reset}'
+        centre_space = w_max - 11 - emoji_count
+        title = f'{line} ⏩ {text_color}{text.center(centre_space)}{reset} ⏪  {line}'
+        print(f'{line_color}╭{"─" * (w_max-2)}╮{reset}')
+        print(title)
+        print(f'{line_color}╰{"─" * (w_max-2)}╯{reset}')
+
+    # Print Pre lines:
     print('\n' * pre_lines, end='')
-    if header:
-        print(red_color, '-' * 80, reset, sep='')
-    if title:
-        print(blue_color, title, reset, sep='')
-    if footer:
-        print(red_color, '-' * 80, reset, sep='')
+
+    # Header line with title in box:
+    if header_line:
+        print(blue_color, '-' * w_max, reset, sep='')
+
+    if note:
+        if box_style:
+            print_in_box(note)
+        else:
+            print(f'{blue_color}{note.center(w_max)}{reset}')
+
+    # Just the footer line:
+    if footer_line:
+        print(blue_color, '-' * w_max, reset, sep='')
+
+    # Print post line:
     print('\n' * post_lines, end='')
 
 
@@ -170,6 +209,8 @@ def connect_to_server(client_socket):
 
 def static_load_balancing(client_socket):
     """Static load balancing logic."""
+    images_processed_count = 0
+
     try:
         # R1 - Receive the images count from the server:
         resp = handle_recv(*receive_message(client_socket),
@@ -191,23 +232,32 @@ def static_load_balancing(client_socket):
                 f"Received image \t : 📂 '{image_name}' [📅 {i_date} 🕑{i_time} 🆔{i_cnt}]")
 
             # Process the image:
-            result = process_image(
-                image_name, image_timestamp, min_time=3, max_time=6)
+            status, result = process_image(image_name, image_timestamp)
+
+            if status == False:
+                if result == "Keyboard_Interrupt":
+                    raise KeyboardInterrupt
+                else:
+                    raise Exception(result)
+
+            images_processed_count += 1
 
             # Send the result back to the server:
             handle_send(*send_message(client_socket,
                         topic="Processed Data", message=json.dumps(result)))
 
     except KeyboardInterrupt:
-        print('User Interrupted the process. Stopping the Load Balancing.')
-
+        return False, "Keyboard_Interrupt"
+    except Exception as e:
+        return False, e
     finally:
-        return True
+        print(f'Processed Total [{images_processed_count}] Images.')
+    return True, ""
 
 
 def dynamic_load_balancing(client_socket):
     """Dynamic load balancing logic."""
-    image_processed_count = 0
+    images_processed_count = 0
 
     try:
         # The client can get any number of images from the server.
@@ -228,20 +278,28 @@ def dynamic_load_balancing(client_socket):
                 f"Received image \t : 📂 '{image_name}' [📅 {i_date} 🕑{i_time} 🆔{i_cnt}]")
 
             # Process the image:
-            result = process_image(
-                image_name, image_timestamp, min_time=3, max_time=6)
-            image_processed_count += 1
+            status, result = process_image(image_name, image_timestamp)
+
+            if status == False:
+                if result == "Keyboard_Interrupt":
+                    raise KeyboardInterrupt
+                else:
+                    raise Exception(result)
+
+            images_processed_count += 1
 
             # Send the result back to the server:
             handle_send(*send_message(client_socket,
                         topic="Processed Data", message=json.dumps(result)))
 
     except KeyboardInterrupt:
-        print('User Interrupted the process. Stopping the Load Balancing.')
-
+        return False, "Keyboard_Interrupt"
+    except Exception as e:
+        return False, e
     finally:
-        print(f'Processed Total [{image_processed_count}] Images.')
-        return True
+        print(f'Processed Total [{images_processed_count}] Images.')
+    return True, ""
+
 
 # ------------------------------------------------------------------------------
 # Dummy Image processing function:
@@ -309,17 +367,20 @@ def process_image(image_name, timestamp, min_time=0, max_time=5):
                 time_remaining_for_min_time, time_remaining_for_max_time)
             time.sleep(random_delay)
 
+        status = True
+
     except KeyboardInterrupt:
-        print('User Interrupted the process. Stopping the image processing.')
+        status = False
+        resp = "Keyboard_Interrupt"
     except Exception as e:
-        print(f"Error in processing image: {e}")
-        resp = None
+        status = False
+        resp = e
     finally:
         # Stop the animation:
         stop_event.set()
         animation_thread.join()
 
-    return resp
+    return status, resp
 
 
 def dummy_process_image(image_name, timestamp):
@@ -362,48 +423,67 @@ def main():
         client_socket.settimeout(TIMEOUT)
 
     # Connect to the server and complete initial setup phase:
-    print_header(pre_lines=0, post_lines=1, footer=False,
-                 title='Connection Initialization Phase with server')
+    print_header(note='Connection Initialization Phase with server')
 
     resp = connect_to_server(client_socket=client_socket)
     if resp == True:
         print_header(
-            pre_lines=1, post_lines=1, header=False,
-            title='Connection Initialization phase with server successful.')
+            footer_line=True, box_style=False,
+            note='Connection Initialization phase with server successful.')
     else:
         raise Exception(resp)
 
     # Initialize the attendance module:
     attendance.init()
 
-    # Next phase:
-    print_header(pre_lines=1, post_lines=1, footer=False,
-                 title='Load Balancing Phase with server')
+    # Keep looping the load balancing phase:
+    # Prev part was once to be done, this part is to be done repeatedly.
+    # Any number of times website will demand process images,
+    # Distr-Clients will be up and running to process images.
 
-    # Get the mode of load balancing:
-    resp = handle_recv(*receive_message(client_socket),
-                       expected_topic='Load Balancing')
-    load_balancing = resp["message"]
-    print(f"`{load_balancing}` Load balancing mode selected.")
+    try:
+        while True:
+            # Next phase:
+            print_header(note='Load Balancing Phase with server')
 
-    # Load balancing phase:
-    if load_balancing.lower() == "static":
-        resp = static_load_balancing(client_socket)
-    else:
-        resp = dynamic_load_balancing(client_socket)
+            # Get the mode of load balancing:
+            resp = handle_recv(*receive_message(client_socket),
+                               expected_topic='Load Balancing')
+            load_balancing = resp["message"]
+            print(f"`{load_balancing}` Load balancing mode selected.")
 
-    if resp == True:
-        print("All images processed successfully.")
-        print_header(pre_lines=1, post_lines=1, header=False,
-                     title='Load Balancing phase successful.')
+            # Load balancing phase:
+            if load_balancing.lower() == "static":
+                status, resp = static_load_balancing(client_socket)
+            else:
+                status, resp = dynamic_load_balancing(client_socket)
 
-    else:
-        print(resp)
+            if status == True:
+                print("All images processed successfully.")
+                print_header(note='Load Balancing phase successful.',
+                             footer_line=True, box_style=False)
+            else:
+                if resp == "Keyboard_Interrupt":
+                    raise KeyboardInterrupt
+                else:
+                    raise Exception(resp)
 
-    # Close the client socket:
-    print_header(pre_lines=1, post_lines=1,
-                 title='Client\'s work is done. Closing the client socket 😊')
-    client_socket.close()
+    except KeyboardInterrupt:
+        print_header('User Interrupted the process. Stopping the load balancing.',
+                     footer_line=True, box_style=False)
+
+    except Exception as e:
+        print(f'Error occurred: {e}')
+        print_header('Load balancing iteration failed...',
+                     footer_line=True, box_style=False)
+
+    finally:
+        # Close the client socket:
+        print_header('Client\'s work is done. Closing the client socket 😊 ',
+                     header_line=True, footer_line=True, emoji_count=1)
+        client_socket.close()
+        return
+        
 
 
 # ------------------------------------------------------------------------------
@@ -411,9 +491,10 @@ def main():
 # ------------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    # main()
+    main()
+    exit(0)
 
-    print_header('Dummy Image Processing:', pre_lines=1, post_lines=1)
+    # print_header('Dummy Image Processing:')
 
     # wait_animation('\t', '', 5)
     # stop_event = threading.Event()

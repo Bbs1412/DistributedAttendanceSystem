@@ -2,14 +2,17 @@
 # Make folders: Models, Images, Results
 # Connect to server first, send the device name to server
 # Get all the pickles from server in response w/ device_id
-# Get the images and names from the server
+# Get the images and names from the server (as per the load balancing)
 # Process based on the model and send the results back to the server
+# There is dummy_process_image function for testing purposes
 
 import os
-import json
 import time
+import json
+import random
 import socket
 import threading
+import attendance
 from datetime import datetime
 from networking import receive_message, send_message, handle_send, handle_recv
 
@@ -182,18 +185,13 @@ def static_load_balancing(client_socket):
 
         image_time = resp["message"]
         image_name = resp["data"]["filename"]
-        # print(f"Received image \t : '{image_name}' of [{image_time}]")
-
         i_date, i_time, i_cnt = image_time.split(',')
         print(
             f"Received image \t : 📂 '{image_name}' [📅 {i_date} 🕑{i_time} 🆔{i_cnt}]")
 
-        # # Process the image:
-        # print(f"\t\t : ⏳ Processing... ", end='\r')
-
         # Process the image with animation:
         stop_event = threading.Event()
-        trail_lines = 5
+        trail_lines = 10
         animation_thread = threading.Thread(
             target=wait_animation,
             args=("\t\t :", '', trail_lines, stop_event)
@@ -201,7 +199,7 @@ def static_load_balancing(client_socket):
         animation_thread.start()
 
         # Process the image:
-        result = dummy_process_image(image_name)
+        result = process_image(image_name)
 
         # Stop the animation:
         stop_event.set()
@@ -216,7 +214,7 @@ def static_load_balancing(client_socket):
 
 def dynamic_load_balancing(client_socket):
     """Dynamic load balancing logic."""
-
+    image_processed_count = 0
     # The client can get any number of images from the server.
     while True:
         # R1 - Receive the image from the server:
@@ -228,18 +226,34 @@ def dynamic_load_balancing(client_socket):
         if resp["message"].lower() == "done":
             break
 
-        image_time = resp["message"]
+        image_timestamp = resp["message"]
         image_name = resp["data"]["filename"]
-        print(f"Received image \t : '{image_name}' of [{image_time}]")
+        i_date, i_time, i_cnt = image_timestamp.split(',')
+        print(
+            f"Received image \t : 📂 '{image_name}' [📅 {i_date} 🕑{i_time} 🆔{i_cnt}]")
+
+        # Process the image with animation:
+        stop_event = threading.Event()
+        trail_lines = 5
+        animation_thread = threading.Thread(
+            target=wait_animation,
+            args=("\t\t :", '', trail_lines, stop_event)
+        )
+        animation_thread.start()
 
         # Process the image:
-        print(f"\t\t : Processing... ", end='\r')
-        result = dummy_process_image(image_name)
+        result = process_image(image_name, image_timestamp)
+        image_processed_count += 1
+
+        # Stop the animation:
+        stop_event.set()
+        animation_thread.join()
 
         # Send the result back to the server:
         handle_send(*send_message(client_socket,
                     topic="Processed Data", message=json.dumps(result)))
 
+    print(f'Processed Total [{image_processed_count}] Images.')
     return True
 
 
@@ -247,14 +261,42 @@ def dynamic_load_balancing(client_socket):
 # Dummy Image processing function:
 # ------------------------------------------------------------------------------
 
-def dummy_process_image(image_name):
+def process_image(image_name, timestamp):
+    """
+    Fn made to ease switching between dummy and actual image processing.
+    For testing purposes.
+    Can be used to simulate the load balancing between the clients.
+    Two clients can be coded with diff sleep times in dummy_process_image fn.
+    Specifically to test the dynamic load balancing.
+    """
+    image_path = os.path.join(IMAGES_FOLDER, image_name)
+    # return dummy_process_image(image_path, timestamp)
+    return attendance.check_image(image_path, timestamp)
+
+
+def dummy_process_image(image_name, timestamp):
     """Mock function to process an image and return JSON."""
-    # Replace this with actual image processing logic
-    import random
-    t = 1
-    t = random.randint(0, 3)
+    t = random.randint(0, 5)
+    t = 5
     time.sleep(t)
-    return {"image_name": image_name, "status": "processed", "data": "some_data"}
+
+    people = ["no one", "someone", "everyone"]
+    present = []
+
+    for i in range(random.randint(0, len(people))):
+        c = random.choice(people)
+        if c not in present:
+            present.append(c)
+
+    return {
+        "timestamp": timestamp,
+        "time_records": {
+            "task_start_time": "01/01/2000, 00:00:00 AM",
+            "task_end_time": "12/12/2012, 12:12:12 PM",
+            "task_time_taken": t
+        },
+        "people_present": present
+    }
 
 # ------------------------------------------------------------------------------
 # Main:
@@ -285,6 +327,9 @@ def main():
     else:
         raise Exception(resp)
 
+    # Initialize the attendance module:
+    attendance.init()
+    
     # Next phase:
     print_header(pre_lines=1, post_lines=1, footer=False,
                  title='Load Balancing Phase with server')

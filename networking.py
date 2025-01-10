@@ -11,7 +11,7 @@ from datetime import datetime
 # Base functions:
 # ------------------------------------------------------------------------------
 
-NO_DELAY = False
+NO_DELAY = True
 
 
 def procrastination_protocol(match_my_chill: int = None):

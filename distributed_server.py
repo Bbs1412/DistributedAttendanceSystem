@@ -83,7 +83,7 @@ def start_server():
     server_socket.bind((HOST, PORT))
     server_socket.listen(5)
 
-    print(f"{INFO} Server started at `{HOST}:{PORT}`")
+    print(f"{INFO} Distributed processing Server started at `{HOST}:{PORT}`")
     l.create_log(
         topic='Server', status='Info', client_id=-1,
         message=f"Server started at `{HOST}:{PORT}` for timeout = {TIMEOUT} seconds.")

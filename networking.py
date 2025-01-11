@@ -67,6 +67,15 @@ def receive_message(
         There's way of error handling in this function:
         If there's an error, 'NACK' is sent back to the sender max 'max_attempts' times. Sender is designed to retry if 'NACK' is received.
     """
+    def recv_all(sock, size):
+        data = b""
+        while len(data) < size:
+            packet = sock.recv(size - len(data))
+            if not packet:
+                raise ConnectionError("Connection closed before all data was received.")
+            data += packet
+        return data
+    
     if current_attempt is None:
         current_attempt = 0
 
@@ -81,7 +90,9 @@ def receive_message(
             raise ValueError("Invalid message size.")
 
         # Read the actual message
-        data = client_socket.recv(message_size)
+        # data = client_socket.recv(message_size)
+        data = recv_all(client_socket, message_size)
+        
         if not data:
             raise ValueError("No data received.")
 

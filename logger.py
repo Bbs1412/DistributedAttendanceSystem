@@ -7,7 +7,7 @@ logs = []
 log_count = 1
 log_lock = Lock()
 
-log_file = os.path.join('logs.json')
+log_file = os.path.join('Jsons/network_logs.json')
 
 
 def get_timestamp():

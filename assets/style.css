@@ -260,7 +260,7 @@ video {
     text-align: center;
 }
 
-#frameDropdown ul li[data-value="100"]:hover {
+#frameDropdown ul li[data-value="20"]:hover {
     background: var(--success-color);
 }
 

@@ -5,7 +5,7 @@
 // Global variables:
 // ======================================================================================
 
-let no_of_frames_to_send = 10;
+let no_of_frames_to_send = 20;
 let processing_mode = 'Static';
 
 let mediaRecorder;

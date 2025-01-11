@@ -8,6 +8,7 @@ from werkzeug.exceptions import RequestEntityTooLarge
 from flask import (Flask, render_template, request,
                    send_file, send_from_directory, jsonify)
 
+import distributed_server
 from image_processor import process_image
 
 # To cut
@@ -26,7 +27,6 @@ app.config['MAX_CONTENT_LENGTH'] = 50 * MB
 # Global variables
 load_dotenv()
 DEBUG = os.environ.get('debug_mode') == "True"
-print(f"DEBUG: {DEBUG}")
 
 # Just initializing the variable, will be updated in the upload_video route
 no_of_frames_recvd = 100
@@ -38,6 +38,13 @@ os.makedirs(os.environ.get('upload_folder'), exist_ok=True)
 os.makedirs(os.environ.get('excel_folder'), exist_ok=True)
 os.makedirs('jsons', exist_ok=True)
 
+
+# ---------------------------------------------------------------------
+# Start the image processing (distributed) server:
+# So that processing clients are connected before the web server starts
+# ---------------------------------------------------------------------
+distributed_server.start_server()
+distributed_server.get_clients()
 
 # ---------------------------------------------------------------------
 # Logger:
@@ -96,8 +103,8 @@ def upload_video():
         return jsonify({
             'status': 'error',
             'message': 'No video data received'}), 400
-    else:
-        ...
+
+    # else:
         # create_log('Video Upload', 'Video data received', 'Success')
 
     # Convert the base64 to images
@@ -123,71 +130,72 @@ def upload_video():
                     'time': f'{round(t2-t1, 4)} secs!'}), 200
 
 
-# # Route to start attendance calculation on server:
-# @app.route('/calc_attendance', methods=['GET'])
-# def calc_attendance():
-#     t1 = time.time()
-#     driver_function(file_names, js_mod_timestamps)
-#     save_register()
-#     t2 = time.time()
+# Route to start attendance calculation on server:
+@app.route('/calc_attendance', methods=['GET'])
+def calc_attendance():
+    t1 = time.time()
 
-#     return jsonify({"status": "completed",
-#                     "response": "Attendance calculation successful",
-#                     'time': f'{round(t2-t1, 3)} secs'
-#                     }), 200
+    # Call the attendance calculation function
+    # Start load_balancing > compile results > release clients > stop the server
+    distributed_server.driver_function()
 
+    t2 = time.time()
 
-# # Route to get the final attendance data (result):
-# @app.route('/results', methods=['GET'])
-# def results():
-#     # Load attendance data from JSON file
-#     path = os.path.join(os.environ.get('static_url'),
-#                         os.environ.get('class_attendance'))
-#     with open(path, 'r') as file:
-#         register = json.load(file)
-
-#     # Update attendance data with extracted time
-#     for student_id, details in register.items():
-#         # Extract time for "First_In" and "Last_In" if available
-#         details['First_In'] = extract_time(details['First_In'])
-#         details['Last_In'] = extract_time(details['Last_In'])
-
-#     # Pick whatever data you want to display in the results page {{ using reg.item }} from the attendance register
-#     # return render_template('results.html', register=register), 200
-#     return render_template('results.html', register=register, timings=get_class_timings()), 200
+    return jsonify({"status": "completed",
+                    "response": "Attendance calculation successful",
+                    'time': f'{round(t2-t1, 3)} secs'
+                    }), 200
 
 
-# # Save attendance data to Excel with timestamped filename:
-# @app.route('/download')
-# def download_excel():
-#     # Load attendance data from JSON file
-#     path = os.path.join(static_url, os.environ.get('class_attendance'))
-#     with open(path, 'r') as file:
-#         register = json.load(file)
+# Route to get the final attendance data (result):
+@app.route('/results', methods=['GET'])
+def results():
+    # Load attendance data from JSON file
+    path = os.environ.get('class_attendance')
+    with open(path, 'r') as file:
+        register = json.load(file)
 
-#     # Convert the attendance register to a DataFrame
-#     data = []
-#     for reg_no, details in register.items():
-#         info = {
-#             'Reg No': reg_no,
-#             # 'Reg No': details['Reg No'],
-#             'Name': details['Name'],
-#             'In Time': extract_time(details['First_In']),
-#             'Out Time': extract_time(details['Last_In']),
-#             'Percentage': details['Percentage'],
-#             'Status': details['Status']
-#         }
+    # Update attendance data with extracted time
+    for student_id, details in register.items():
+        # Extract time for "First_In" and "Last_In" if available
+        details['First_In'] = extract_time(details['First_In'])
+        details['Last_In'] = extract_time(details['Last_In'])
 
-#         data.append(info)
+    # Pick whatever data you want to display in the results page {{ using reg.item }} from the attendance register
+    # return render_template('results.html', register=register), 200
+    return render_template('results.html', register=register, timings=get_class_timings()), 200
 
-#     df = pd.DataFrame(data, columns=data[0].keys())
 
-#     file_name = f'{datetime.now().strftime("%d-%m-%Y_%H-%M-%S")}.xlsx'
-#     file_path = os.path.join(
-#         static_url, os.environ.get('excel_folder'), file_name)
+# Save attendance data to Excel with timestamped filename:
+@app.route('/download')
+def download_excel():
+    # Load attendance data from JSON file
+    path = os.environ.get('class_attendance')
+    with open(path, 'r') as file:
+        register = json.load(file)
 
-#     df.to_excel(file_path, index=False)
-#     return send_file(file_path, as_attachment=True)
+    # Convert the attendance register to a DataFrame
+    data = []
+    for reg_no, details in register.items():
+        info = {
+            'Reg No': reg_no,
+            # 'Reg No': details['Reg No'],
+            'Name': details['Name'],
+            'In Time': extract_time(details['First_In']),
+            'Out Time': extract_time(details['Last_In']),
+            'Percentage': details['Percentage'],
+            'Status': details['Status']
+        }
+
+        data.append(info)
+
+    df = pd.DataFrame(data, columns=data[0].keys())
+
+    file_name = f'{datetime.now().strftime("%d-%m-%Y_%H-%M-%S")}.xlsx'
+    file_path = os.path.join(os.environ.get('excel_folder'), file_name)
+
+    df.to_excel(file_path, index=False)
+    return send_file(file_path, as_attachment=True)
 
 
 # ======================================================================
@@ -289,9 +297,17 @@ def get_class_timings():
 
 
 if __name__ == '__main__':
-    # app.run(debug=True)
-    app.run(
-        host='0.0.0.0',
-        port=5000,
-        debug=True,
-    )
+    # Run the Flask app:
+    # Make sure use_reloader=False, otherwise the server will start multiple times [and] 
+    # distributed server will also try to start multiple times that will cause an error
+
+    try:
+        app.run(
+            host='0.0.0.0',
+            port=5000,
+            debug=True,
+            use_reloader=False
+        )
+    except Exception as e:
+        distributed_server.release_clients()        
+        distributed_server.stop_server()

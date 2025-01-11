@@ -146,6 +146,46 @@ def wait_animation(prefix: str = '', suffix: str = '',
     # print(f"{prefix} Processing completed {suffix}")
 
 
+def scrolling_text(
+        text: str = None, jump: int = 1,
+        sleep: int = 0.15, stop_event: threading.Event = None):
+    if not text:
+        text = 'Input Some Text...'
+    w_max = os.get_terminal_size().columns - 15
+
+    green_color = '\033[92m'
+    yellow_color = '\033[93m'
+    reset = '\033[0m'
+
+    # Remove un-necessary spaces:
+    text = text.strip()
+
+    # Occupy full length:
+    if len(text) > w_max:
+        text = text[:w_max - 5] + '...'
+        text = text.ljust(w_max)
+
+    # Occupy fixed length:
+    else:
+        text = text.center(50)
+
+    while True:
+        # print(f"[{text}]", end='\r')
+        b_1 = f'{yellow_color}[{reset}'
+        txt = f'{green_color}{text}{reset}'
+        b_2 = f'{yellow_color}]{reset}'
+
+        final = f"{b_1}{txt}{b_2}".center(w_max + 20)
+        print(final, end='\r')
+
+        if stop_event.is_set():
+            print(' ' * os.get_terminal_size().columns,  end='\r')
+            return
+
+        time.sleep(sleep)
+        text = text[-jump:] + text[:-jump]
+
+
 # ------------------------------------------------------------------------------
 # Manage the connection with server:
 # ------------------------------------------------------------------------------
@@ -446,10 +486,28 @@ def main():
             # Next phase:
             print_header(note='Load Balancing Phase with server')
 
+            # Show the scrolling text:
+            stop_scroll = threading.Event()
+            scroll_thread = threading.Thread(
+                target=scrolling_text,
+                # kwargs={"text":'hii', "sleep":0.5, "stop_event":stop_event}
+                kwargs={
+                    "text": 'Waiting for server to send the task...',
+                    "stop_event": stop_scroll,
+                    "jump": 1,
+                    "sleep": 0.1
+                }
+            )
+            scroll_thread.start()
+
             # Get the mode of load balancing:
             resp = handle_recv(*receive_message(client_socket),
                                expected_topic='Load Balancing')
             load_balancing = resp["message"]
+
+            # Stop the scrolling text once server sends next batch of task:
+            stop_scroll.set()
+            scroll_thread.join()
             print(f"`{load_balancing}` Load balancing mode selected.")
 
             # Load balancing phase:
@@ -481,15 +539,14 @@ def main():
         # Close the client socket:
         print_header('Client\'s work is done. Closing the client socket 😊 ',
                      header_line=True, footer_line=True, emoji_count=1)
+        stop_scroll.set()
         client_socket.close()
         return
-        
 
 
 # ------------------------------------------------------------------------------
 # Entry point:
 # ------------------------------------------------------------------------------
-
 if __name__ == "__main__":
     main()
     exit(0)

@@ -38,7 +38,8 @@ clients = {}
 #     'name': 'Sample Client',
 #     'socket': "python_data",
 #     'address': "192.168.13.12",
-#     'is_free': True
+#     'is_free': True, # For dynamic load balancing only
+#    'task_count': 0, # For dynamic load balancing only
 # }
 
 # Global server socket to access from anywhere:
@@ -176,7 +177,8 @@ def handle_client_initialization(client_socket, client_address, slow=False):
             "name": client_name,
             "socket": client_socket,
             "address": client_address,
-            "is_free": True     # For dynamic load balancing only
+            "is_free": True,     # For dynamic load balancing only
+            "task_count": 0      # For dynamic load balancing only
         }
 
         print(f"{INFO} Client {client_id} : Connected Successfully {client_address} - `{client_name}`")
@@ -318,6 +320,7 @@ def static_mode(image_files, timestamps, frames_count):
 def dynamic_mode_thread(image, timestamp, client_id):
     client_socket = clients[client_id]['socket']
     clients[client_id]['is_free'] = False  # Mark client as busy
+    completed_tasks = clients[client_id]['task_count']
 
     try:
         # Send the task to the client
@@ -325,7 +328,7 @@ def dynamic_mode_thread(image, timestamp, client_id):
             client_socket, topic='Dynamic Task', message=timestamp, file_path=image),
             log_topic='Load Balancing', log_client_id=client_id,
             log_success_message=f"Task [{timestamp}] sent successfully.")
-        print(f"{INFO} Client {client_id} : Task [{timestamp}] sent.")
+        print(f"{INFO} Client {client_id} : Task {completed_tasks:02d} - [{timestamp}] sent.")
 
         # Wait for the client to process the task and respond
         resp = handle_recv(
@@ -364,6 +367,7 @@ def dynamic_mode(image_files, timestamps, frames_count):
             if client['is_free'] and len(task_queue) > 0:
                 # Assign the next task to the free client
                 image, timestamp = task_queue.pop(0)
+                client['task_count'] += 1
                 thread = threading.Thread(
                     target=dynamic_mode_thread,
                     args=(image, timestamp, client_id),

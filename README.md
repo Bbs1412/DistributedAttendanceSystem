@@ -77,6 +77,93 @@ This is the distributed processing version of the [Smart Attendance System](http
 
 ---
 
+## 🚀 Steps to run:
+
+### Server Setup:
+1. Clone the repository:
+    ```bash
+    git clone --depth 1 https://github.com/Bbs1412/DistributedAttendanceSystem.git
+    ```
+    
+1. Navigate to the project directory:
+    ```bash
+    cd DistributedAttendanceSystem
+    ```
+
+1. Create a virtual environment and install dependencies:
+    ```bash
+    python -m venv venv
+    venv\Scripts\activate
+    pip install -r "requirements_all.txt"
+    ```
+
+1. Configure the number of clients in the `.env` file:
+    ```js
+    no_of_clients = 2
+    ```
+
+1. Train the face recognition models:
+    - Create a folder named `Pics` in the project directory and add the images of the people you want to recognize in the `Pics` folder.
+    - Update the ***people*** list in `face_train.py` (~line 73)::
+        ```Python
+        Person(
+            reg='registration_number',
+            name='Name',
+            image='person_name.jpg',      # Image should be in the 'Pics' folder
+            display_name='Display Name',  # optional
+            pickle_name='person_name.pkl' # optional
+        )
+        ```
+    - Run the training script:
+        ```bash
+        python face_train.py
+        ```
+
+1. Start the web server:
+    ```bash
+    python app.py
+    ```
+
+1. Connect clients:
+    - Run the `distributed_client.py` on all the clients within span of set timeout.
+
+7. Open the browser at:
+    ```plaintext
+    http://localhost:5000
+    ```
+
+### Client Setup:
+1. Clone the repository:
+    ```bash
+    git clone --depth 1 https://github.com/Bbs1412/DistributedAttendanceSystem.git
+    ```
+
+1. Copy `networking.py` and `logger.py` from the root directory to `Client/` directory.
+
+1. Navigate to the client directory:
+    ```bash
+    cd DistributedAttendanceSystem/Client
+    ```
+
+1. Create a virtual environment and install dependencies:
+    ```bash
+    python -m venv venv
+    venv\Scripts\activate
+    cp ../requirements_all.txt .
+    pip install -r "requirements_all.txt"
+    ```
+
+1. Rest all files outside `Client/` can be deleted.
+
+1. Run the client once main server is up:
+    ```bash
+    python distributed_client.py
+    ```
+
+1. Repeat the above steps for all the clients.
+
+---
+
 ## 🤝 Contributions:
    Any contributions or suggestions are welcome! 
 

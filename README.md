@@ -14,6 +14,7 @@ This is the distributed processing version of the [Smart Attendance System](http
 - [Steps to run](#-steps-to-run)
     - [Server Setup](#server-setup)
     - [Client Setup](#client-setup)
+- [Extras](#-extras)
 - [Contributions](#-contributions)
 - [License](#-license)
 - [Contact](#-contact)
@@ -63,7 +64,7 @@ This is the distributed processing version of the [Smart Attendance System](http
 - **Web-based Interface:** Upload videos and view/download attendance results.
 - **Parallel Processing:** Faster processing through distributed clients.
 - **Customizable Load Balancing:** Switch between static and dynamic modes.
-- Thread locking for consistent read-write operations.
+- **Thread locking:** For consistent read-write operations on shared resources.
 - **Accurate Attendance Marking:** Threshold-based attendance marking ensures precision.
 - **Detailed Reporting:** Faculty can access detailed results and downloadable attendance records.
 
@@ -161,6 +162,24 @@ This is the distributed processing version of the [Smart Attendance System](http
     ```
 
 1. Repeat the above steps for all the clients.
+
+---
+
+## 📝 Extras:
+- **`Networking module:`** 
+    - The [`networking.py`](networking.py) module provides abstraction for client-server communication.
+    - It uses a structured JSON based custom protocol, which can be checked in [`Protocol.json`](Protocol.json) file.
+    - Includes functions for sending and receiving data over sockets.
+    - Robust error handling and logging are implemented for better debugging.
+    - Sender-side: Retries sending the same message up to 3 times if an error occurs (can be adjusted in the `networking.py` file).
+    - Receiver-side: Sends `NACK` (negative acknowledgment) to the sender if an error is detected, prompting the sender to resend the data.
+    - Data sent in parts over the network is reassembled at the receiver's end.
+
+- **`Logger module:`** 
+    - The [`logger.py`](logger.py) module is also implemented using the same protocol. 
+    - It provides logging functionality for efficient debugging and status tracking of the distributed system.
+    - Can be disabled in high performance scenarios, as it may impact the performance due to frequent I/O operations.
+
 
 ---
 

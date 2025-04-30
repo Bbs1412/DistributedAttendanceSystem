@@ -168,7 +168,7 @@ This is the distributed processing version of the [Smart Attendance System](http
 ## 📝 Extras:
 - **`Networking module:`** 
     - The [`networking.py`](networking.py) module provides abstraction for client-server communication.
-    - It uses a structured JSON based custom protocol, which can be checked in [`Protocol.json`](Protocol.json) file.
+    - It uses a structured JSON based custom protocol, which can be checked in [`Protocol.json`](protocol.json) file.
     - Includes functions for sending and receiving data over sockets.
     - Robust error handling and logging are implemented for better debugging.
     - Sender-side: Retries sending the same message up to 3 times if an error occurs (can be adjusted in the `networking.py` file).

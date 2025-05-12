@@ -1,7 +1,11 @@
 # Distributed Attendance System
 This is the distributed processing version of the [Smart Attendance System](https://github.com/Bbs1412/SmartAttendanceSystem) project, utilizing distributed processing for attendance calculation through face recognition. 
 
-<!-- [![Project Repo](https://img.shields.io/badge/Repository-%20Smart%20Attendance%20System-blue.svg?style=flat&logo=github)](https://github.com/Bbs1412/SmartAttendanceSystem) -->
+
+> [!IMPORTANT]  
+> - This README contains demonstration videos which your browser or device might not support.  
+> - In case the demo videos are not visible, try refreshing the page.
+> - If they remain unplayable, switch to a different browser or try accessing from another device.
 
 
 ## Index:
@@ -31,9 +35,9 @@ This is the distributed processing version of the [Smart Attendance System](http
    - Initialization includes:
         - Accepting client connections and registering their details.
         - Sending pre-trained face models and essential files to each client.
-        - <video src="https://github.com/user-attachments/assets/b2e9ed9d-05fb-46c0-a61f-d715a3b6eacb" type="video/mp4" alt="Server-Initialization-Video"></video> 
+        - <video src="https://github.com/user-attachments/assets/8cdd03d5-21d9-45b0-a7d2-24460826e706" type="video/mp4" alt="Server-Initialization-Video"></video> 
         - Setting clients on standby mode for task distribution.
-        - <video src="https://github.com/user-attachments/assets/ef51f1ba-2109-4f6d-b57e-3d4163b8a152" type="video/mp4" alt="Client-Initialization-Video"></video>
+        - <video src="https://github.com/user-attachments/assets/805b6065-dc4c-4d29-b5fe-b1482ca0b318" type="video/mp4" alt="Client-Initialization-Video"></video>
 
 2. **Task Distribution:**
    - The server accepts video uploads from the frontend.
@@ -41,15 +45,16 @@ This is the distributed processing version of the [Smart Attendance System](http
         1. **`Static Load Balancing:`** 
             - Tasks are evenly distributed before processing begins. 
             - All clients must finish their tasks before results can be combined.
-            - <video src="https://github.com/user-attachments/assets/9f61a92c-ce0d-4480-98b5-35b1639962db" type="video/mp4" alt="Client-Static-Load-Balancing-Video"></video>
+            - <video src="https://github.com/user-attachments/assets/3729f1da-a817-4407-933e-c4abce047f8f" type="video/mp4" alt="Client-Static-Load-Balancing-Video"></video>
             - Means, the server has to wait for all clients to complete the task.
-            - <video src="https://github.com/user-attachments/assets/839c4cac-8e77-4eb1-8ef3-89ecf6e9e995" type="video/mp4" alt="Server-Static-Load-Balancing-Video"></video>
+            - One client has been purposely delayed to simulate the difference in processing time.
+            - <video src="https://github.com/user-attachments/assets/8283a7fc-f184-428e-b0a1-aa42452f79b3" type="video/mp4" alt="Server-Static-Load-Balancing-Video"></video>
 
         2. **`Dynamic Load Balancing:`** 
             - Tasks are assigned based on client processing speed in real-time, ensuring efficient resource utilization.
-            - <video src="https://github.com/user-attachments/assets/b369b03d-db8d-4b13-91a4-e9a26de1d0ca" type="video/mp4" alt="Client-Dynamic-Load-Balancing-Video"></video>
+            - <video src="https://github.com/user-attachments/assets/35abba42-e2b4-4d7b-a4cb-eb9b8be33d77" type="video/mp4" alt="Client-Dynamic-Load-Balancing-Video"></video>
             - All the clients finish the task approximately at the same time.
-            - <video src="https://github.com/user-attachments/assets/07fa6f98-ebea-447a-a8dc-00b7452480d0" type="video/mp4" alt="Server-Dynamic-Load-Balancing-Video"></video>
+            - <video src="https://github.com/user-attachments/assets/982ee33e-b05b-42b0-9ed9-3ab65ec481e1" type="video/mp4" alt="Server-Dynamic-Load-Balancing-Video"></video>
 
 3. **Processing:**
    - Clients process video frames using OpenCV and `face_recognition`.
